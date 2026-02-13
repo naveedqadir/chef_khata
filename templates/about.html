@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+{% block nav_about %}!text-brand-400 bg-white/5{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+
+    <!-- Header -->
+    <div class="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
+        <h1 class="text-4xl sm:text-5xl font-extrabold mb-6">
+            About <span class="text-gradient">Chef Khata</span>
+        </h1>
+        <p class="text-lg sm:text-xl text-stone-400 leading-relaxed">
+            A free, voice-first AI cooking assistant that lets you have natural conversations about recipes,
+            cooking techniques, and ingredient substitutions — hands-free in your kitchen.
+        </p>
+    </div>
+
+    <!-- Two-column content -->
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 mb-20">
+
+        <!-- Left: Story -->
+        <div class="space-y-6">
+            <h2 class="text-2xl font-bold text-stone-100">Why Chef Khata?</h2>
+            <p class="text-stone-400 leading-relaxed">
+                Cooking should be enjoyable, not stressful. But scrolling through recipe pages with flour-covered hands
+                or pausing a video every 10 seconds isn't fun. Chef Khata solves this with a hands-free voice agent
+                that understands context, remembers what you said, and responds with a warm, human-like voice.
+            </p>
+            <p class="text-stone-400 leading-relaxed">
+                Just tap the orb (or press spacebar) and ask anything — "How do I poach an egg?",
+                "What can I substitute for buttermilk?", or "Give me a quick dinner idea with chicken and broccoli."
+                Chef Khata responds conversationally, keeping answers short and actionable.
+            </p>
+            <p class="text-stone-400 leading-relaxed">
+                You can even interrupt mid-sentence by simply talking — the chef stops, listens to your follow-up,
+                and responds with full context of your conversation. It feels like chatting with a real person in the kitchen.
+            </p>
+        </div>
+
+        <!-- Right: Tech Stack -->
+        <div class="space-y-6">
+            <h2 class="text-2xl font-bold text-stone-100">How it works</h2>
+
+            <div class="space-y-4">
+                <div class="glass rounded-2xl p-5 hover:bg-white/5 transition-all">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-lg">🧠</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-stone-100 mb-1">Llama 3.3 70B via Groq</h3>
+                            <p class="text-sm text-stone-400 leading-relaxed">
+                                The brain behind Chef Khata. Meta's Llama 3.3 70B model running on Groq's ultra-fast
+                                LPU inference hardware — delivers responses in under a second. Free tier.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-5 hover:bg-white/5 transition-all">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-lg">🗣️</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-stone-100 mb-1">Orpheus TTS by Canopy Labs</h3>
+                            <p class="text-sm text-stone-400 leading-relaxed">
+                                Human-like text-to-speech with warm, expressive voice synthesis. Uses the "Autumn" voice
+                                persona for a friendly, natural-sounding cooking companion. Also free on Groq.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-5 hover:bg-white/5 transition-all">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-lg">🎙️</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-stone-100 mb-1">Web Speech API</h3>
+                            <p class="text-sm text-stone-400 leading-relaxed">
+                                Browser-native speech recognition for voice input. No extra APIs or costs — works
+                                in Chrome, Safari, Edge, and most modern browsers.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-5 hover:bg-white/5 transition-all">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-lg">⚡️</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-stone-100 mb-1">Flask + Tailwind CSS</h3>
+                            <p class="text-sm text-stone-400 leading-relaxed">
+                                Lightweight Python backend with a responsive Tailwind CSS frontend.
+                                Minimal dependencies, fast loading, works beautifully on mobile and desktop.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key capabilities -->
+    <div class="border-t border-white/5 pt-16 sm:pt-20">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-12">Key Capabilities</h2>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <div class="text-center space-y-3 p-4">
+                <div class="text-3xl">🍝</div>
+                <h3 class="font-semibold text-stone-200">Recipes</h3>
+                <p class="text-sm text-stone-500">Step-by-step voice instructions for any dish.</p>
+            </div>
+            <div class="text-center space-y-3 p-4">
+                <div class="text-3xl">🔄</div>
+                <h3 class="font-semibold text-stone-200">Substitutions</h3>
+                <p class="text-sm text-stone-500">Out of an ingredient? Get smart alternatives.</p>
+            </div>
+            <div class="text-center space-y-3 p-4">
+                <div class="text-3xl">🔬</div>
+                <h3 class="font-semibold text-stone-200">Food Science</h3>
+                <p class="text-sm text-stone-500">Why does bread rise? What makes meat tender?</p>
+            </div>
+            <div class="text-center space-y-3 p-4">
+                <div class="text-3xl">📋</div>
+                <h3 class="font-semibold text-stone-200">Meal Planning</h3>
+                <p class="text-sm text-stone-500">Weekly plans, shopping lists, and prep tips.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy note -->
+    <div class="border-t border-white/5 pt-16 sm:pt-20 max-w-3xl mx-auto">
+        <div class="glass rounded-2xl p-6 sm:p-8">
+            <h3 class="text-lg font-semibold text-stone-100 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                Your Privacy
+            </h3>
+            <p class="text-sm text-stone-400 leading-relaxed">
+                Conversations are stored only in your browser session and cleared when you close the tab
+                or click "Clear." Voice audio is processed by your browser locally — we don't record or store audio.
+                LLM responses are processed by Groq's API in real-time and not stored. No personal data is collected, ever.
+            </p>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center mt-16 sm:mt-20">
+        <a href="/agent"
+           class="inline-flex items-center justify-center gap-2.5 px-10 py-4 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-semibold rounded-2xl shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 transition-all duration-300 hover:-translate-y-0.5 text-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8m-4-16a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+            </svg>
+            Try Chef Khata Now
+        </a>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-white/5 py-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-sm text-stone-500">
+            <span>🍳</span>
+            <span>Chef Khata &bull; Built with Groq &bull; Free & Open</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs text-stone-600">
+            <span>Llama 3.3 70B</span>
+            <span>&bull;</span>
+            <span>Orpheus TTS</span>
+            <span>&bull;</span>
+            <span>Flask</span>
+        </div>
+    </div>
+</footer>
+{% endblock %}

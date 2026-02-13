@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}Voice Agent{% endblock %}
+{% block nav_agent %}!text-brand-400 bg-white/5{% endblock %}
+
+{% block extra_styles %}
+/* ── Orb Animations ── */
+@keyframes orb-idle {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(238,119,17,0.15); }
+    50% { transform: scale(1.04); box-shadow: 0 0 40px 15px rgba(238,119,17,0.10); }
+}
+@keyframes orb-listening {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.25); }
+    50% { transform: scale(1.08); box-shadow: 0 0 60px 25px rgba(239,68,68,0.15); }
+}
+@keyframes orb-thinking {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.03) rotate(1deg); }
+    50% { transform: scale(0.97) rotate(-1deg); }
+    75% { transform: scale(1.02) rotate(0.5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes orb-speaking {
+    0%, 100% { transform: scale(1); }
+    10% { transform: scale(1.06); }
+    20% { transform: scale(0.98); }
+    30% { transform: scale(1.04); }
+    40% { transform: scale(0.99); }
+    50% { transform: scale(1.05); }
+    60% { transform: scale(0.97); }
+    70% { transform: scale(1.03); }
+    80% { transform: scale(1); }
+    90% { transform: scale(1.02); }
+}
+.orb-idle { animation: orb-idle 3s ease-in-out infinite; }
+.orb-listening { animation: orb-listening 1.2s ease-in-out infinite; }
+.orb-thinking { animation: orb-thinking 1.5s ease-in-out infinite; }
+.orb-speaking { animation: orb-speaking 0.8s ease-in-out infinite; }
+
+/* ── Ring Pulses ── */
+@keyframes ring-pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+.ring { animation: ring-pulse 2s ease-out infinite; }
+.ring-delay-1 { animation-delay: 0.4s; }
+.ring-delay-2 { animation-delay: 0.8s; }
+
+/* ── Message HTML ── */
+.msg-content p { margin-bottom: 0.4rem; }
+.msg-content ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+.msg-content ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+.msg-content li { margin-bottom: 0.15rem; }
+.msg-content strong { font-weight: 600; }
+.msg-content code { background: rgba(255,255,255,0.1); padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.85em; }
+{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-4rem)] flex overflow-hidden select-none">
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--  LEFT: Transcript Sidebar (desktop only)   -->
+    <!-- ═══════════════════════════════════════════ -->
+    <aside id="sidebar" class="hidden lg:flex flex-col w-80 xl:w-96 border-r border-white/5 bg-surface-800/50 flex-shrink-0 transition-all">
+        <!-- Sidebar Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <h2 class="text-sm font-semibold text-stone-300 flex items-center gap-2">
+                <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/>
+                </svg>
+                Conversation
+            </h2>
+            <button onclick="clearChat()" class="text-xs text-stone-500 hover:text-brand-400 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors" title="Clear conversation">
+                ↻ Clear
+            </button>
+        </div>
+        <!-- Transcript Log -->
+        <div id="transcript-log-desktop" class="flex-1 overflow-y-auto custom-scroll px-5 py-4 space-y-3">
+            <div class="text-center py-12">
+                <p class="text-stone-600 text-sm">Start talking to see your conversation here</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--  CENTER: Main Voice Agent Area             -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="flex-1 flex flex-col items-center justify-between px-4 sm:px-6 lg:px-8 py-6 relative overflow-hidden">
+
+        <!-- Decorative background -->
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-brand-500/[0.02] blur-3xl"></div>
+        </div>
+
+        <!-- Top controls (mobile: shows transcript toggle) -->
+        <div class="w-full max-w-2xl flex items-center justify-between flex-shrink-0 relative z-10">
+            <div class="flex items-center gap-2">
+                <!-- Mobile transcript toggle -->
+                <button onclick="toggleTranscript()" id="transcript-toggle"
+                    class="lg:hidden text-stone-400 hover:text-brand-400 p-2 rounded-xl hover:bg-white/5 transition-colors" title="Chat log">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/>
+                    </svg>
+                </button>
+                <button onclick="clearChat()"
+                    class="lg:hidden text-xs text-stone-500 hover:text-brand-400 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    ↻ New
+                </button>
+            </div>
+            <button onclick="toggleMute()" class="text-xs text-stone-500 hover:text-brand-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5">
+                🔊 <span id="mute-label">Auto-speak ON</span>
+            </button>
+        </div>
+
+        <!-- Status Text -->
+        <div class="flex-shrink-0 text-center mt-4 mb-2 relative z-10">
+            <p id="agent-state" class="text-sm sm:text-base font-medium text-stone-300 transition-all duration-300">Tap to start talking</p>
+            <p id="live-transcript" class="text-xs sm:text-sm text-stone-500 mt-1.5 h-6 truncate max-w-xs sm:max-w-md transition-all duration-200"></p>
+        </div>
+
+        <!-- ORB -->
+        <div class="flex-1 flex items-center justify-center relative z-10">
+            <div class="relative">
+                <!-- Pulse rings -->
+                <div id="rings" class="hidden">
+                    <div class="ring absolute inset-0 rounded-full border-2 border-red-400/30"></div>
+                    <div class="ring ring-delay-1 absolute inset-0 rounded-full border-2 border-red-400/20"></div>
+                    <div class="ring ring-delay-2 absolute inset-0 rounded-full border-2 border-red-400/10"></div>
+                </div>
+                <!-- The Orb -->
+                <button id="orb" onclick="handleOrbTap()"
+                    class="orb-idle relative w-36 h-36 sm:w-44 sm:h-44 lg:w-52 lg:h-52 rounded-full flex items-center justify-center cursor-pointer
+                           bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700
+                           shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40
+                           transition-shadow duration-300 focus:outline-none focus:ring-4 focus:ring-brand-400/30">
+                    <div id="orb-icon" class="text-white transition-all duration-300">
+                        <svg class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8m-4-16a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Keyboard hint (desktop) -->
+        <p class="hidden sm:block text-[10px] text-stone-600 mb-3 relative z-10">
+            Press <kbd class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-stone-400 text-[10px]">Space</kbd> to start
+        </p>
+
+        <!-- Last Response Display -->
+        <div id="response-card" class="hidden w-full max-w-2xl flex-shrink-0 mb-3 fade-up relative z-10">
+            <div class="glass rounded-2xl px-5 py-4 max-h-48 lg:max-h-64 overflow-y-auto custom-scroll">
+                <div id="response-text" class="msg-content text-sm sm:text-base text-stone-200 leading-relaxed"></div>
+            </div>
+        </div>
+
+        <!-- Mobile Transcript Panel -->
+        <div id="transcript-panel" class="hidden lg:hidden w-full max-w-2xl flex-shrink-0 mb-3 relative z-10">
+            <div class="glass rounded-2xl max-h-52 overflow-y-auto custom-scroll">
+                <div id="transcript-log-mobile" class="px-4 py-3 space-y-2 text-xs"></div>
+            </div>
+        </div>
+
+        <!-- Bottom: text input -->
+        <footer class="w-full max-w-2xl flex-shrink-0 space-y-2 relative z-10">
+            <div class="flex items-center gap-2">
+                <input id="text-input" type="text" placeholder="Or type your question here..."
+                    class="flex-1 glass rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 text-sm text-stone-200 placeholder:text-stone-500
+                           focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();sendText();}">
+                <button onclick="sendText()"
+                    class="w-11 h-11 rounded-xl sm:rounded-2xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="text-[10px] text-stone-600 text-center sm:text-left px-1">
+                Llama 3.3 70B &bull; Orpheus TTS &bull; Powered by Groq &bull; Free
+            </p>
+        </footer>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const AgentState = { IDLE: 'idle', LISTENING: 'listening', THINKING: 'thinking', SPEAKING: 'speaking' };
+let state = AgentState.IDLE;
+let autoSpeak = true;
+let voiceLoopEnabled = true;
+let recognition = null;
+let currentAudio = null;
+let speakResolve = null;
+let chatController = null;
+let ttsController = null;
+let transcriptVisible = false;
+let messageSeq = 0;
+
+const orb = document.getElementById('orb');
+const orbIcon = document.getElementById('orb-icon');
+const rings = document.getElementById('rings');
+const agentStateEl = document.getElementById('agent-state');
+const liveTranscript = document.getElementById('live-transcript');
+const responseCard = document.getElementById('response-card');
+const responseText = document.getElementById('response-text');
+const transcriptPanel = document.getElementById('transcript-panel');
+const transcriptLogMobile = document.getElementById('transcript-log-mobile');
+const transcriptLogDesktop = document.getElementById('transcript-log-desktop');
+const textInput = document.getElementById('text-input');
+const muteLabel = document.getElementById('mute-label');
+
+// Icons
+const MIC_ICON = `<svg class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8m-4-16a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/></svg>`;
+const STOP_ICON = `<svg class="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+const DOTS_ICON = `<div class="flex gap-1.5 sm:gap-2"><div class="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-white/80 rounded-full animate-bounce" style="animation-delay:0ms"></div>
+    <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-white/80 rounded-full animate-bounce" style="animation-delay:150ms"></div>
+    <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-white/80 rounded-full animate-bounce" style="animation-delay:300ms"></div></div>`;
+const WAVE_ICON = `<svg class="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"/></svg>`;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  STATE MACHINE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function setState(newState) {
+    state = newState;
+    orb.className = orb.className.replace(/orb-\w+/g, '');
+
+    switch (state) {
+        case AgentState.IDLE:
+            orb.classList.add('orb-idle');
+            orb.style.background = '';
+            orbIcon.innerHTML = MIC_ICON;
+            rings.classList.add('hidden');
+            agentStateEl.textContent = 'Tap to start talking';
+            agentStateEl.className = 'text-sm sm:text-base font-medium text-stone-300 transition-all duration-300';
+            liveTranscript.textContent = '';
+            break;
+
+        case AgentState.LISTENING:
+            orb.classList.add('orb-listening');
+            orb.style.background = 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)';
+            orbIcon.innerHTML = STOP_ICON;
+            rings.classList.remove('hidden');
+            agentStateEl.textContent = 'Listening...';
+            agentStateEl.className = 'text-sm sm:text-base font-medium text-red-400 transition-all duration-300';
+            break;
+
+        case AgentState.THINKING:
+            orb.classList.add('orb-thinking');
+            orb.style.background = 'linear-gradient(135deg, #f59e0b, #d97706, #b45309)';
+            orbIcon.innerHTML = DOTS_ICON;
+            rings.classList.add('hidden');
+            agentStateEl.textContent = 'Thinking...';
+            agentStateEl.className = 'text-sm sm:text-base font-medium text-amber-400 transition-all duration-300';
+            liveTranscript.textContent = '';
+            break;
+
+        case AgentState.SPEAKING:
+            orb.classList.add('orb-speaking');
+            orb.style.background = 'linear-gradient(135deg, #22c55e, #16a34a, #15803d)';
+            orbIcon.innerHTML = WAVE_ICON;
+            rings.classList.add('hidden');
+            agentStateEl.textContent = 'Speaking...';
+            agentStateEl.className = 'text-sm sm:text-base font-medium text-green-400 transition-all duration-300';
+            break;
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  SPEECH RECOGNITION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+        let interim = '', final_t = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+                final_t += event.results[i][0].transcript;
+            } else {
+                interim += event.results[i][0].transcript;
+            }
+        }
+        // Voice interrupt
+        if (state === AgentState.SPEAKING) {
+            stopSpeaking();
+            setState(AgentState.LISTENING);
+        }
+        liveTranscript.textContent = final_t || interim;
+        if (final_t) textInput.value = final_t;
+    };
+
+    recognition.onend = () => {
+        if (state === AgentState.LISTENING) {
+            const text = textInput.value.trim();
+            if (text) {
+                textInput.value = '';
+                processMessage(text);
+            } else {
+                setState(AgentState.IDLE);
+            }
+        } else if (state === AgentState.SPEAKING) {
+            try { recognition.start(); } catch(e) {}
+        }
+    };
+
+    recognition.onerror = (event) => {
+        if (state === AgentState.SPEAKING) {
+            if (event.error === 'no-speech' || event.error === 'aborted') {
+                try { recognition.start(); } catch(e) {}
+            }
+            return;
+        }
+        if (event.error === 'not-allowed') {
+            agentStateEl.textContent = 'Microphone access denied — check browser permissions';
+        } else if (event.error === 'no-speech') {
+            agentStateEl.textContent = "Didn't catch that — tap and try again";
+        }
+        setTimeout(() => setState(AgentState.IDLE), 2500);
+    };
+} else {
+    agentStateEl.textContent = 'Voice not supported — use text input below';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ORB TAP HANDLER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function handleOrbTap() {
+    switch (state) {
+        case AgentState.IDLE: startListening(); break;
+        case AgentState.LISTENING: recognition?.stop(); break;
+        case AgentState.SPEAKING: stopSpeaking(); startListening(); break;
+        case AgentState.THINKING: break;
+    }
+}
+
+function startListening() {
+    if (!recognition) return;
+    stopSpeaking();
+    textInput.value = '';
+    setState(AgentState.LISTENING);
+    try { recognition.start(); } catch(e) {}
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  AGENT LOOP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function processMessage(text) {
+    // Cancel any previous in-flight cycle
+    stopSpeaking();
+    try { recognition?.stop(); } catch(e) {}
+
+    const seq = ++messageSeq;
+    setState(AgentState.THINKING);
+    addToTranscript('you', text);
+
+    if (chatController) chatController.abort();
+    chatController = new AbortController();
+
+    try {
+        const resp = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text }),
+            signal: chatController.signal,
+        });
+
+        if (seq !== messageSeq) return; // stale — a newer message took over
+
+        if (!resp.ok) {
+            showResponse('Something went wrong. Please try again.', false);
+            setState(AgentState.IDLE);
+            return;
+        }
+
+        const data = await resp.json();
+        if (seq !== messageSeq) return;
+        chatController = null;
+        addToTranscript('chef', data.reply);
+        showResponse(data.reply_html, true);
+
+        if (autoSpeak) {
+            setState(AgentState.SPEAKING);
+            if (recognition) { try { recognition.start(); } catch(e) {} }
+            await speakText(data.reply);
+            if (seq !== messageSeq) return; // interrupted by a newer message
+            if (state !== AgentState.SPEAKING) return;
+            if (voiceLoopEnabled && recognition) {
+                setTimeout(() => startListening(), 400);
+            } else {
+                setState(AgentState.IDLE);
+            }
+        } else {
+            setState(AgentState.IDLE);
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') return;
+        if (seq !== messageSeq) return;
+        showResponse('Network error. Check your connection.', false);
+        setState(AgentState.IDLE);
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  TEXT-TO-SPEECH (Groq Orpheus)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function speakText(text) {
+    if (ttsController) ttsController.abort();
+    ttsController = new AbortController();
+
+    try {
+        const resp = await fetch('/speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+            signal: ttsController.signal,
+        });
+
+        if (!resp.ok) { console.warn('TTS failed:', resp.status); return; }
+
+        const blob = await resp.blob();
+        ttsController = null;
+        const url = URL.createObjectURL(blob);
+
+        return new Promise((resolve) => {
+            speakResolve = resolve;
+            currentAudio = new Audio(url);
+            currentAudio.onended = () => {
+                URL.revokeObjectURL(url);
+                currentAudio = null;
+                speakResolve = null;
+                resolve();
+            };
+            currentAudio.onerror = () => {
+                URL.revokeObjectURL(url);
+                currentAudio = null;
+                speakResolve = null;
+                resolve();
+            };
+            currentAudio.play().catch(() => { speakResolve = null; resolve(); });
+        });
+    } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.warn('TTS error:', err);
+    }
+}
+
+function stopSpeaking() {
+    if (ttsController) { ttsController.abort(); ttsController = null; }
+    if (chatController) { chatController.abort(); chatController = null; }
+    if (currentAudio) {
+        const oldUrl = currentAudio.src;
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio.removeAttribute('src');
+        URL.revokeObjectURL(oldUrl);
+        currentAudio = null;
+    }
+    if (speakResolve) { speakResolve(); speakResolve = null; }
+}
+
+function toggleMute() {
+    autoSpeak = !autoSpeak;
+    muteLabel.textContent = autoSpeak ? 'Auto-speak ON' : 'Auto-speak OFF';
+    if (!autoSpeak) stopSpeaking();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  UI HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function showResponse(html, isHTML) {
+    responseCard.classList.remove('hidden');
+    responseCard.classList.add('fade-up');
+    responseText.innerHTML = isHTML ? html : escapeHTML(html);
+}
+
+function addToTranscript(role, text) {
+    const isDesktop = window.innerWidth >= 1024;
+    const container = isDesktop ? transcriptLogDesktop : transcriptLogMobile;
+
+    // Clear placeholder on first message (desktop)
+    if (isDesktop && container.querySelector('.text-center')) {
+        container.innerHTML = '';
+    }
+
+    const div = document.createElement('div');
+
+    if (isDesktop) {
+        // Desktop: chat bubble style
+        const isUser = role === 'you';
+        div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} fade-in`;
+        const preview = text.length > 300 ? text.substring(0, 300) + '...' : text;
+        const bubbleClass = isUser
+            ? 'bg-brand-500/15 border-brand-500/20 text-stone-200'
+            : 'bg-white/5 border-white/10 text-stone-300';
+        const label = isUser ? 'You' : 'Chef Khata';
+        const labelColor = isUser ? 'text-brand-400' : 'text-green-400';
+        div.innerHTML = `<div class="max-w-[85%] ${bubbleClass} border rounded-2xl px-4 py-3">
+            <p class="text-[10px] uppercase tracking-wider ${labelColor} mb-1">${label}</p>
+            <p class="text-sm leading-relaxed">${escapeHTML(preview)}</p>
+        </div>`;
+    } else {
+        // Mobile: compact
+        div.className = role === 'you' ? 'text-right text-stone-400' : 'text-left text-stone-300';
+        const label = role === 'you' ? 'You' : 'Chef Khata';
+        const labelColor = role === 'you' ? 'text-brand-400' : 'text-green-400';
+        const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+        div.innerHTML = `<span class="text-[10px] uppercase tracking-wider ${labelColor}">${label}</span>
+            <p class="mt-0.5 leading-snug">${escapeHTML(preview)}</p>`;
+    }
+
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+
+    // Also mirror to the other log
+    const otherContainer = isDesktop ? transcriptLogMobile : transcriptLogDesktop;
+    if (isDesktop && otherContainer) {
+        // Keep mobile in sync
+        const clone = document.createElement('div');
+        clone.className = role === 'you' ? 'text-right text-stone-400' : 'text-left text-stone-300';
+        const label = role === 'you' ? 'You' : 'Chef Khata';
+        const labelColor = role === 'you' ? 'text-brand-400' : 'text-green-400';
+        const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+        clone.innerHTML = `<span class="text-[10px] uppercase tracking-wider ${labelColor}">${label}</span>
+            <p class="mt-0.5 leading-snug">${escapeHTML(preview)}</p>`;
+        otherContainer.appendChild(clone);
+    }
+}
+
+function toggleTranscript() {
+    transcriptVisible = !transcriptVisible;
+    transcriptPanel.classList.toggle('hidden', !transcriptVisible);
+}
+
+async function clearChat() {
+    stopSpeaking();
+    if (state === AgentState.LISTENING) recognition?.stop();
+    await fetch('/clear', { method: 'POST' });
+    transcriptLogMobile.innerHTML = '';
+    transcriptLogDesktop.innerHTML = `<div class="text-center py-12"><p class="text-stone-600 text-sm">Start talking to see your conversation here</p></div>`;
+    responseCard.classList.add('hidden');
+    setState(AgentState.IDLE);
+}
+
+function sendText() {
+    const text = textInput.value.trim();
+    if (!text) return;
+    textInput.value = '';
+    processMessage(text);
+}
+
+function escapeHTML(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  KEYBOARD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && document.activeElement !== textInput) {
+        e.preventDefault();
+        handleOrbTap();
+    }
+});
+
+// Init
+setState(AgentState.IDLE);
+</script>
+{% endblock %}

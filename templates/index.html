@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chef Khata — Voice Cooking Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fef7ee', 100: '#fdedd3', 200: '#fad7a5',
+                            300: '#f6b96d', 400: '#f19333', 500: '#ee7711',
+                            600: '#df5d07', 700: '#b94409', 800: '#93360e', 900: '#782f0f',
+                        },
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── Orb Animations ── */
+        @keyframes orb-idle {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(238,119,17,0.15); }
+            50% { transform: scale(1.04); box-shadow: 0 0 30px 10px rgba(238,119,17,0.10); }
+        }
+        @keyframes orb-listening {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.25); }
+            50% { transform: scale(1.08); box-shadow: 0 0 50px 20px rgba(239,68,68,0.15); }
+        }
+        @keyframes orb-thinking {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.03) rotate(1deg); }
+            50% { transform: scale(0.97) rotate(-1deg); }
+            75% { transform: scale(1.02) rotate(0.5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes orb-speaking {
+            0%, 100% { transform: scale(1); }
+            10% { transform: scale(1.06); }
+            20% { transform: scale(0.98); }
+            30% { transform: scale(1.04); }
+            40% { transform: scale(0.99); }
+            50% { transform: scale(1.05); }
+            60% { transform: scale(0.97); }
+            70% { transform: scale(1.03); }
+            80% { transform: scale(1); }
+            90% { transform: scale(1.02); }
+        }
+        .orb-idle { animation: orb-idle 3s ease-in-out infinite; }
+        .orb-listening { animation: orb-listening 1.2s ease-in-out infinite; }
+        .orb-thinking { animation: orb-thinking 1.5s ease-in-out infinite; }
+        .orb-speaking { animation: orb-speaking 0.8s ease-in-out infinite; }
+
+        /* ── Ring Pulses ── */
+        @keyframes ring-pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .ring { animation: ring-pulse 2s ease-out infinite; }
+        .ring-delay-1 { animation-delay: 0.4s; }
+        .ring-delay-2 { animation-delay: 0.8s; }
+
+        /* ── Fade In ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.4s ease-out; }
+
+        /* ── Transcript scroll ── */
+        .transcript-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #e7e5e4 transparent;
+        }
+        .transcript-scroll::-webkit-scrollbar { width: 4px; }
+        .transcript-scroll::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 2px; }
+
+        /* ── Message HTML ── */
+        .msg-content p { margin-bottom: 0.4rem; }
+        .msg-content ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .msg-content ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .msg-content li { margin-bottom: 0.15rem; }
+        .msg-content strong { font-weight: 600; }
+        .msg-content code { background: rgba(255,255,255,0.1); padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.85em; }
+    </style>
+</head>
+<body class="h-full bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 text-stone-100 font-sans overflow-hidden select-none">
+    <div class="h-full flex flex-col items-center justify-between max-w-lg mx-auto px-4 py-6">
+
+        <!-- Top bar -->
+        <header class="w-full flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2.5">
+                <span class="text-2xl">🍳</span>
+                <div>
+                    <h1 class="text-base font-semibold text-stone-100 leading-tight">Chef Khata</h1>
+                    <p class="text-[11px] text-stone-400">Voice Cooking Agent</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleTranscript()" id="transcript-toggle"
+                    class="text-xs text-stone-400 hover:text-brand-400 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors" title="Toggle chat log">
+                    💬
+                </button>
+                <button onclick="clearChat()"
+                    class="text-xs text-stone-400 hover:text-brand-400 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors" title="New conversation">
+                    ↻ New
+                </button>
+            </div>
+        </header>
+
+        <!-- Status Text -->
+        <div class="flex-shrink-0 text-center mt-4 mb-2">
+            <p id="agent-state" class="text-sm font-medium text-stone-300 transition-all duration-300">Tap to start talking</p>
+            <p id="live-transcript" class="text-xs text-stone-500 mt-1 h-5 truncate max-w-xs transition-all duration-200"></p>
+        </div>
+
+        <!-- ORB (Main Voice Button) -->
+        <div class="flex-1 flex items-center justify-center">
+            <div class="relative">
+                <!-- Pulse rings (visible when listening) -->
+                <div id="rings" class="hidden">
+                    <div class="ring absolute inset-0 rounded-full border-2 border-red-400/30"></div>
+                    <div class="ring ring-delay-1 absolute inset-0 rounded-full border-2 border-red-400/20"></div>
+                    <div class="ring ring-delay-2 absolute inset-0 rounded-full border-2 border-red-400/10"></div>
+                </div>
+
+                <!-- The Orb -->
+                <button id="orb" onclick="handleOrbTap()"
+                    class="orb-idle relative w-40 h-40 rounded-full flex items-center justify-center cursor-pointer
+                           bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700
+                           shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40
+                           transition-shadow duration-300 focus:outline-none focus:ring-4 focus:ring-brand-400/30">
+                    <div id="orb-icon" class="text-white transition-all duration-300">
+                        <svg class="w-14 h-14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8m-4-16a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Last Response Display -->
+        <div id="response-card" class="hidden w-full flex-shrink-0 mb-3 fade-up">
+            <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-5 py-4 max-h-40 overflow-y-auto transcript-scroll">
+                <div id="response-text" class="msg-content text-sm text-stone-200 leading-relaxed"></div>
+            </div>
+        </div>
+
+        <!-- Transcript Panel (hidden by default) -->
+        <div id="transcript-panel" class="hidden w-full flex-shrink-0 mb-3">
+            <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl max-h-52 overflow-y-auto transcript-scroll">
+                <div id="transcript-log" class="px-4 py-3 space-y-2 text-xs"></div>
+            </div>
+        </div>
+
+        <!-- Bottom: text input fallback + info -->
+        <footer class="w-full flex-shrink-0 space-y-2">
+            <div class="flex items-center gap-2">
+                <input id="text-input" type="text" placeholder="Or type here..."
+                    class="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-stone-200 placeholder:text-stone-500
+                           focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();sendText();}">
+                <button onclick="sendText()"
+                    class="w-10 h-10 rounded-full bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19V5m0 0l-7 7m7-7l7 7"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="flex justify-between items-center px-1">
+                <p class="text-[10px] text-stone-600">Llama 3.3 70B via Groq &bull; Free</p>
+                <button onclick="toggleMute()" class="text-[10px] text-stone-500 hover:text-brand-400 transition-colors">
+                    🔊 <span id="mute-label">Auto-speak ON</span>
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  STATE
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const AgentState = { IDLE: 'idle', LISTENING: 'listening', THINKING: 'thinking', SPEAKING: 'speaking' };
+    let state = AgentState.IDLE;
+    let autoSpeak = true;
+    let voiceLoopEnabled = true;
+    let recognition = null;
+    let currentAudio = null;  // Orpheus TTS audio element
+    let speakResolve = null;  // resolve fn for cancellable TTS
+    let chatController = null;  // AbortController for /chat
+    let ttsController = null;   // AbortController for /speak
+    let transcriptVisible = false;
+
+    const orb = document.getElementById('orb');
+    const orbIcon = document.getElementById('orb-icon');
+    const rings = document.getElementById('rings');
+    const agentStateEl = document.getElementById('agent-state');
+    const liveTranscript = document.getElementById('live-transcript');
+    const responseCard = document.getElementById('response-card');
+    const responseText = document.getElementById('response-text');
+    const transcriptPanel = document.getElementById('transcript-panel');
+    const transcriptLog = document.getElementById('transcript-log');
+    const textInput = document.getElementById('text-input');
+    const muteLabel = document.getElementById('mute-label');
+
+    // Icons
+    const MIC_ICON = `<svg class="w-14 h-14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8m-4-16a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/></svg>`;
+    const STOP_ICON = `<svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+    const DOTS_ICON = `<div class="flex gap-1.5"><div class="w-3 h-3 bg-white/80 rounded-full animate-bounce" style="animation-delay:0ms"></div>
+        <div class="w-3 h-3 bg-white/80 rounded-full animate-bounce" style="animation-delay:150ms"></div>
+        <div class="w-3 h-3 bg-white/80 rounded-full animate-bounce" style="animation-delay:300ms"></div></div>`;
+    const WAVE_ICON = `<svg class="w-14 h-14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"/></svg>`;
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  STATE MACHINE
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function setState(newState) {
+        state = newState;
+        orb.className = orb.className.replace(/orb-\w+/g, '');
+
+        switch (state) {
+            case AgentState.IDLE:
+                orb.classList.add('orb-idle');
+                orb.style.background = '';
+                orbIcon.innerHTML = MIC_ICON;
+                rings.classList.add('hidden');
+                agentStateEl.textContent = 'Tap to start talking';
+                agentStateEl.className = 'text-sm font-medium text-stone-300 transition-all duration-300';
+                liveTranscript.textContent = '';
+                break;
+
+            case AgentState.LISTENING:
+                orb.classList.add('orb-listening');
+                orb.style.background = 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)';
+                orbIcon.innerHTML = STOP_ICON;
+                rings.classList.remove('hidden');
+                agentStateEl.textContent = 'Listening...';
+                agentStateEl.className = 'text-sm font-medium text-red-400 transition-all duration-300';
+                break;
+
+            case AgentState.THINKING:
+                orb.classList.add('orb-thinking');
+                orb.style.background = 'linear-gradient(135deg, #f59e0b, #d97706, #b45309)';
+                orbIcon.innerHTML = DOTS_ICON;
+                rings.classList.add('hidden');
+                agentStateEl.textContent = 'Thinking...';
+                agentStateEl.className = 'text-sm font-medium text-amber-400 transition-all duration-300';
+                liveTranscript.textContent = '';
+                break;
+
+            case AgentState.SPEAKING:
+                orb.classList.add('orb-speaking');
+                orb.style.background = 'linear-gradient(135deg, #22c55e, #16a34a, #15803d)';
+                orbIcon.innerHTML = WAVE_ICON;
+                rings.classList.add('hidden');
+                agentStateEl.textContent = 'Speaking...';
+                agentStateEl.className = 'text-sm font-medium text-green-400 transition-all duration-300';
+                break;
+        }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  SPEECH RECOGNITION
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+            let interim = '', final_t = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    final_t += event.results[i][0].transcript;
+                } else {
+                    interim += event.results[i][0].transcript;
+                }
+            }
+
+            // Voice interrupt: user started speaking while agent is talking
+            if (state === AgentState.SPEAKING) {
+                stopSpeaking();
+                setState(AgentState.LISTENING);
+            }
+
+            liveTranscript.textContent = final_t || interim;
+            if (final_t) textInput.value = final_t;
+        };
+
+        recognition.onend = () => {
+            if (state === AgentState.LISTENING) {
+                const text = textInput.value.trim();
+                if (text) {
+                    processMessage(text);
+                    textInput.value = '';
+                } else {
+                    setState(AgentState.IDLE);
+                }
+            } else if (state === AgentState.SPEAKING) {
+                // Interrupt detection timed out (no speech heard), restart it
+                try { recognition.start(); } catch(e) {}
+            }
+        };
+
+        recognition.onerror = (event) => {
+            // During interrupt detection, silently restart on no-speech
+            if (state === AgentState.SPEAKING) {
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    try { recognition.start(); } catch(e) {}
+                }
+                return;
+            }
+            if (event.error === 'not-allowed') {
+                agentStateEl.textContent = '⚠️ Microphone access denied — check browser permissions';
+            } else if (event.error === 'no-speech') {
+                agentStateEl.textContent = "Didn't catch that — tap and try again";
+            }
+            setTimeout(() => setState(AgentState.IDLE), 2500);
+        };
+    } else {
+        agentStateEl.textContent = 'Voice not supported — use text input below';
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  ORB TAP HANDLER
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function handleOrbTap() {
+        switch (state) {
+            case AgentState.IDLE:
+                startListening();
+                break;
+            case AgentState.LISTENING:
+                recognition?.stop();
+                break;
+            case AgentState.SPEAKING:
+                stopSpeaking();
+                startListening();  // interrupt → immediately listen
+                break;
+            case AgentState.THINKING:
+                break;
+        }
+    }
+
+    function startListening() {
+        if (!recognition) return;
+        stopSpeaking();
+        textInput.value = '';
+        setState(AgentState.LISTENING);
+        try { recognition.start(); } catch(e) {}
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  AGENT LOOP (core)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    async function processMessage(text) {
+        setState(AgentState.THINKING);
+        addToTranscript('you', text);
+
+        // Cancel any previous in-flight requests
+        if (chatController) chatController.abort();
+        chatController = new AbortController();
+
+        try {
+            const resp = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text }),
+                signal: chatController.signal,
+            });
+
+            if (!resp.ok) {
+                showResponse('Something went wrong. Please try again.', false);
+                setState(AgentState.IDLE);
+                return;
+            }
+
+            const data = await resp.json();
+            chatController = null;
+
+            addToTranscript('chef', data.reply);
+            showResponse(data.reply_html, true);
+
+            if (autoSpeak) {
+                setState(AgentState.SPEAKING);
+                // Start mic for voice-interrupt detection while speaking
+                if (recognition) { try { recognition.start(); } catch(e) {} }
+                await speakText(data.reply);
+
+                // If interrupted, state is already LISTENING — don't override
+                if (state !== AgentState.SPEAKING) return;
+
+                // Finished speaking naturally — auto-listen again
+                if (voiceLoopEnabled && recognition) {
+                    setTimeout(() => startListening(), 400);
+                } else {
+                    setState(AgentState.IDLE);
+                }
+            } else {
+                setState(AgentState.IDLE);
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') return;  // interrupted — expected
+            showResponse('Network error. Check your connection.', false);
+            setState(AgentState.IDLE);
+        }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  TEXT-TO-SPEECH (Groq Orpheus — human-like)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    async function speakText(text) {
+        // Cancel any previous TTS request
+        if (ttsController) ttsController.abort();
+        ttsController = new AbortController();
+
+        try {
+            const resp = await fetch('/speak', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+                signal: ttsController.signal,
+            });
+
+            if (!resp.ok) {
+                console.warn('TTS failed, status:', resp.status);
+                return;
+            }
+
+            const blob = await resp.blob();
+            ttsController = null;
+            const url = URL.createObjectURL(blob);
+
+            return new Promise((resolve) => {
+                speakResolve = resolve;  // store so stopSpeaking() can cancel
+                currentAudio = new Audio(url);
+                currentAudio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    currentAudio = null;
+                    speakResolve = null;
+                    resolve();
+                };
+                currentAudio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    currentAudio = null;
+                    speakResolve = null;
+                    resolve();
+                };
+                currentAudio.play().catch(() => { speakResolve = null; resolve(); });
+            });
+        } catch (err) {
+            if (err.name === 'AbortError') return;  // interrupted — expected
+            console.warn('TTS error:', err);
+        }
+    }
+
+    function stopSpeaking() {
+        // Abort any in-flight TTS/chat requests
+        if (ttsController) { ttsController.abort(); ttsController = null; }
+        if (chatController) { chatController.abort(); chatController = null; }
+
+        if (currentAudio) {
+            const oldUrl = currentAudio.src;
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio.removeAttribute('src');
+            URL.revokeObjectURL(oldUrl);
+            currentAudio = null;
+        }
+        // Resolve pending speakText promise so processMessage can continue
+        if (speakResolve) { speakResolve(); speakResolve = null; }
+    }
+
+    function toggleMute() {
+        autoSpeak = !autoSpeak;
+        muteLabel.textContent = autoSpeak ? 'Auto-speak ON' : 'Auto-speak OFF';
+        if (!autoSpeak) stopSpeaking();
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  UI HELPERS
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function showResponse(html, isHTML) {
+        responseCard.classList.remove('hidden');
+        responseCard.classList.add('fade-up');
+        responseText.innerHTML = isHTML ? html : escapeHTML(html);
+    }
+
+    function addToTranscript(role, text) {
+        const div = document.createElement('div');
+        div.className = role === 'you' ? 'text-right text-stone-400' : 'text-left text-stone-300';
+        const label = role === 'you' ? 'You' : 'Chef Khata';
+        const labelColor = role === 'you' ? 'text-brand-400' : 'text-green-400';
+        const preview = text.length > 200 ? text.substring(0, 200) + '...' : text;
+        div.innerHTML = `<span class="text-[10px] uppercase tracking-wider ${labelColor}">${label}</span>
+            <p class="mt-0.5 leading-snug">${escapeHTML(preview)}</p>`;
+        transcriptLog.appendChild(div);
+        transcriptLog.scrollTop = transcriptLog.scrollHeight;
+    }
+
+    function toggleTranscript() {
+        transcriptVisible = !transcriptVisible;
+        transcriptPanel.classList.toggle('hidden', !transcriptVisible);
+    }
+
+    async function clearChat() {
+        stopSpeaking();
+        if (state === AgentState.LISTENING) recognition?.stop();
+        await fetch('/clear', { method: 'POST' });
+        transcriptLog.innerHTML = '';
+        responseCard.classList.add('hidden');
+        setState(AgentState.IDLE);
+    }
+
+    function sendText() {
+        const text = textInput.value.trim();
+        if (!text || state === AgentState.THINKING) return;
+        textInput.value = '';
+        processMessage(text);
+    }
+
+    function escapeHTML(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  KEYBOARD: Space to start
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && document.activeElement !== textInput) {
+            e.preventDefault();
+            handleOrbTap();
+        }
+    });
+
+    // Init
+    setState(AgentState.IDLE);
+    </script>
+</body>
+</html>

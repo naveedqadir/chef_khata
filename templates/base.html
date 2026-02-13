@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chef Khata{% endblock %} — AI Voice Cooking Assistant</title>
+    <meta name="description" content="Chef Khata is a free AI voice cooking assistant powered by Groq. Ask anything about recipes, techniques, and ingredients — hands-free.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fef7ee', 100: '#fdedd3', 200: '#fad7a5',
+                            300: '#f6b96d', 400: '#f19333', 500: '#ee7711',
+                            600: '#df5d07', 700: '#b94409', 800: '#93360e', 900: '#782f0f',
+                        },
+                        surface: {
+                            900: '#1a1917', 800: '#1f1e1c', 700: '#292826',
+                            600: '#33312e', 500: '#3d3b37',
+                        },
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Smooth scroll */
+        html { scroll-behavior: smooth; }
+
+        /* Custom scrollbar */
+        .custom-scroll { scrollbar-width: thin; scrollbar-color: #44403c transparent; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #44403c; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+
+        /* Animations */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+        /* Glass effect */
+        .glass {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        /* Glow */
+        .glow-brand { box-shadow: 0 0 60px -12px rgba(238,119,17,0.25); }
+
+        /* Gradient text */
+        .text-gradient {
+            background: linear-gradient(135deg, #f19333, #ee7711, #df5d07);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body class="h-full bg-surface-900 text-stone-100 font-sans antialiased">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center gap-2.5 group">
+                    <span class="text-2xl group-hover:scale-110 transition-transform">🍳</span>
+                    <span class="text-lg font-bold text-stone-100">Chef <span class="text-gradient">Khata</span></span>
+                </a>
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <a href="/" class="px-3 py-2 text-sm text-stone-400 hover:text-brand-400 rounded-lg hover:bg-white/5 transition-all {% block nav_home %}{% endblock %}">Home</a>
+                    <a href="/agent" class="px-3 py-2 text-sm text-stone-400 hover:text-brand-400 rounded-lg hover:bg-white/5 transition-all {% block nav_agent %}{% endblock %}">Agent</a>
+                    <a href="/about" class="px-3 py-2 text-sm text-stone-400 hover:text-brand-400 rounded-lg hover:bg-white/5 transition-all {% block nav_about %}{% endblock %}">About</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <main class="pt-16">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
